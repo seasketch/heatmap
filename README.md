@@ -1,7 +1,7 @@
 
 # heatmap
 
-![heatmap package](https://github.com/seasketch/python-sap-map/actions/workflows/test-heatmap.yml/badge.svg)
+![heatmap package](https://github.com/seasketch/heatmap/actions/workflows/test-heatmap.yml/badge.svg)
 
 This package takes polygons and aggregates them into a heatmap using different methods
 
@@ -9,7 +9,7 @@ This package takes polygons and aggregates them into a heatmap using different m
 
 This aggregate map can be used in area-based planning exercises for identifying where important areas exist and measuring the impact if changes in access are made.
 
-[Documentations](https://seasketch.github.io/python-sap-map/)
+[Documentations](https://seasketch.github.io/heatmap/)
 
 # Publications
 

@@ -6,12 +6,12 @@ A Docker recipe is available to install `heatmap` in an isolated virtual environ
 
 2. Clone the code, build a docker image, run a container with the image and open a shell to it, run final sap setup, then run the test suite to verify it's working:
 ```bash
-    git clone https://github.com/seasketch/python-sap-map.git
+    git clone https://github.com/seasketch/heatmap.git
 ```
 
 3. Build docker image (only need to run once)
 ```bash
-    cd python-sap-map
+    cd heatmap
     docker-compose build heatmap
 ```
 
@@ -19,7 +19,7 @@ A Docker recipe is available to install `heatmap` in an isolated virtual environ
 ```bash
     docker-compose run --rm --service-ports heatmap
 ```
-With this basic start command, the container only has access to the python-sap-map folder so any input/output will need to be maintained within it.
+With this basic start command, the container only has access to the heatmap folder so any input/output will need to be maintained within it.
 
 1. Alternatively, start container with external folder mounts for input and output
 ```bash
@@ -105,8 +105,8 @@ Windows Option 1: Docker
 Install and start Docker for Windows, then build and start a heatmap Docker image:
 
 ```
-    git clone https://github.com/seasketch/python-sap-map.git
-    cd python-sap-map
+    git clone https://github.com/seasketch/heatmap.git
+    cd heatmap
     docker-compose build debug # not necessary?
     docker-compose run --rm --service-ports heatmap
 ```

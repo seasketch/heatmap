@@ -41,7 +41,7 @@ setup(
     description="Generate Spatial Access Priority (SAP) maps from response data",
     license="BSD",
     keywords="gis geospatial geographic raster vector zonal statistics",
-    url="https://github.com/seasketch/python-sap-map",
+    url="https://github.com/seasketch/heatmap",
     package_dir={'': 'lib'},
     packages=['heatmap'],
     long_description=read('README.md'),
