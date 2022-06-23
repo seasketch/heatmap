@@ -1,7 +1,7 @@
 
 # heatmap
 
-![heatmap package](https://github.com/seasketch/heatmap/actions/workflows/test-heatmap.yml/badge.svg)
+![heatmap package](https://github.com/seasketch/heatmap/actions/workflows/pr-test-heatmap.yml/badge.svg)
 
 This package takes polygons and aggregates them into a heatmap using different methods
 

@@ -1,4 +1,4 @@
-name: "Test SAP Map"
+name: "Test Heatmap"
 
 on:
   pull_request:
