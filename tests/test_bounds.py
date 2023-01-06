@@ -10,15 +10,15 @@ pixelArea = resolution * resolution
 def test_outer_bounds():
     """ Test bounds larger than the input features
     """
-    infile = os.path.join(DATA, 'simple-polygon.geojson')
-    outfile = os.path.join(DATA, 'simple-polygon.tif')
+    infile = os.path.join(DATA, 'simple-polygon-3857.geojson')
+    outfile = os.path.join(DATA, 'simple-polygon-3857.tif')
 
     assert(os.path.isfile(infile))
     manifest = genHeatMap(infile, outResolution=resolution, bounds=[-400, -400, 400, 400], areaFactor=pixelArea, overwrite=True)
     assert(os.path.isfile(outfile))
     assert(len(manifest['included']) == 5)
 
-    with rasterio.open(os.path.join(DATA, 'simple-polygon.tif')) as reader:
+    with rasterio.open(os.path.join(DATA, outfile)) as reader:
         assert(manifest['outBounds'][0] == reader.bounds.left)
         assert(manifest['outBounds'][1] == reader.bounds.bottom)
         assert(manifest['outBounds'][2] == reader.bounds.right)
@@ -49,8 +49,8 @@ def test_outer_bounds():
 def test_inner_bounds():
     """ Test bounds larger than the input features
     """
-    infile = os.path.join(DATA, 'simple-polygon.geojson')
-    outfile = os.path.join(DATA, 'simple-polygon.tif')
+    infile = os.path.join(DATA, 'simple-polygon-3857.geojson')
+    outfile = os.path.join(DATA, 'simple-polygon-3857.tif')
 
     assert(os.path.isfile(infile))
     manifest = genHeatMap(
@@ -60,7 +60,6 @@ def test_inner_bounds():
         areaFactor=pixelArea,
         overwrite=True
     )
-    assert(os.path.isfile(outfile))
     assert(len(manifest['included']) == 5)
 
     with rasterio.open(outfile) as reader:

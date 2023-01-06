@@ -137,6 +137,10 @@ def genHeatMap(
   # Special handle shapes smaller than an output pixel
   smallShapes = []
 
+  # Use shape index for identifying "small" shapes
+  # Based on https://gis.stackexchange.com/questions/316128/identifying-long-and-narrow-polygons-in-with-postgis
+  # In practice, the inverse method does not seem to work as well
+
   # Get shape index for one output raster cell
   (minx, miny, maxx, maxy) = inBounds
   cellBL = (minx, miny)
@@ -144,20 +148,21 @@ def genHeatMap(
   cellTR = (minx + outResolution, miny + outResolution)
   cellTL = (minx, miny + outResolution)
   cellPoly = Polygon([cellBL, cellBR, cellTR, cellTL, cellBL])
-  # Based on https://gis.stackexchange.com/questions/316128/identifying-long-and-narrow-polygons-in-with-postgis
-  # In practice, the inverse method does not seem to work as well
+  # Calculate shape index for polygon
   cellShapeIndex = cellPoly.area / cellPoly.length
 
   minShapeIndex = Infinity
   maxShapeIndex = 0
   shapeIndexThreshold = Infinity
-
   if allTouchedSmall:
     shapeIndexThreshold = cellShapeIndex * allTouchedSmallFactor
 
   for idx, feature in enumerate(src_shapes):
-      geometry = feature['geometry'] if src_shapes.crs['init'] == outCrsString else next(reprojectPolygon(feature))
-      shapeGeom = shape(geometry)
+      # Convert to shapely Polygon/MultiPolygon with reproject if necessary
+      shapeGeom = shape(feature['geometry']) if src_shapes.crs['init'] == outCrsString else reprojectPolygon(shape(feature['geometry']), src_shapes.crs['init'], outCrsString)
+      # Get new geojson-like object from shape, we'll use it for lower level work later
+      geometry = shapeGeom.__geo_interface__
+
       error = False
       if not shapeGeom.is_valid:
         if fixGeom:
@@ -166,10 +171,10 @@ def genHeatMap(
             log.append("Fixed invalid feature geometry")
             log.append(simplejson.dumps(feature))
             log.append("With new geometry")
-            newGeom = next(reprojectPolygon(fixedGeom.__geo_interface__, "epsg:3857", "epsg:4326"))
+            logGeom = reprojectPolygon(fixedGeom.__geo_interface__, "epsg:3857", "epsg:4326")
             log.append(simplejson.dumps({
               **feature,
-              'geometry': newGeom
+              'geometry': logGeom
             }))
             log.append("")     
             shapeGeom = fixedGeom
@@ -204,35 +209,35 @@ def genHeatMap(
 
         curShapeIndex = 0
         if allTouchedSmall:
-          curShapeIndex = shapeGeom.area / shapeGeom.exterior.length
+          curLength = 1
+          if (geometry["type"] == "Polygon"):
+            curLength = shapeGeom.exterior.length
+          elif (geometry["type"] == "MultiPolygon") :
+            curLength = shapeGeom.length
+          curShapeIndex = shapeGeom.area / curLength
           minShapeIndex = min(minShapeIndex, curShapeIndex)
           maxShapeIndex = max(maxShapeIndex, curShapeIndex)
         isSmall = allTouchedSmall and curShapeIndex < shapeIndexThreshold
+        
         if (isSmall):
-          smallShapes.append((
-            geometry,
-            heatValue
-          ))
+          smallShapes.append((geometry, heatValue))
         else:
-          shapes.append((
-            geometry,
-            heatValue
-          ))
+          shapes.append((geometry, heatValue))
 
         if uniqueIdField:
-          manifest['included'].append(feature['properties'][uniqueIdField])
+          manifest['included'].append((feature['properties'][uniqueIdField], heatValue))
           if isSmall:
-            manifest['includedSmall'].append(feature['properties'][uniqueIdField])
+            manifest['includedSmall'].append((feature['properties'][uniqueIdField], heatValue))
         else:
-          manifest['included'].append(idx)
+          manifest['included'].append((idx, heatValue))
       elif len(error) > 0:
         log.append("Skipping feature: {}".format(error))
         log.append(simplejson.dumps(feature))
         log.append("")
         if uniqueIdField:
-          manifest['excluded'].append(feature['properties'][uniqueIdField])
+          manifest['excluded'].append((feature['properties'][uniqueIdField], heatValue))
         else:
-          manifest['excluded'].append(idx)
+          manifest['excluded'].append((idx, heatValue))
 
   result = None
   if allTouchedSmall and len(smallShapes) > 0:

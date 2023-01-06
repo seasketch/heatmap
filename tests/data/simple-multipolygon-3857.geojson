@@ -1,0 +1,71 @@
+{
+    "type": "FeatureCollection",
+    "name": "simple-multipolygon-3857",
+    "crs": {
+        "type": "name",
+        "properties": {
+            "name": "urn:ogc:def:crs:EPSG::3857"
+        }
+    },
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "importance": 20
+            },
+            "geometry": {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [
+                                0,
+                                0
+                            ],
+                            [
+                                100,
+                                0
+                            ],
+                            [
+                                100,
+                                100
+                            ],
+                            [
+                                0,
+                                100
+                            ],
+                            [
+                                0,
+                                0
+                            ]
+                        ]
+                    ],
+                    [
+                        [
+                            [
+                                100,
+                                100
+                            ],
+                            [
+                                200,
+                                100
+                            ],
+                            [
+                                200,
+                                200
+                            ],
+                            [
+                                100,
+                                200
+                            ],
+                            [
+                                100,
+                                100
+                            ]
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}
