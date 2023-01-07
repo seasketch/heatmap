@@ -13,6 +13,7 @@
     <script src="_static/underscore.js"></script>
     <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="heatmap module" href="api.html" />
@@ -41,13 +42,13 @@
 <p>Start debupy in container listening on port, waits for vscode before executing the Python script.</p>
 <p>Running an example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">cd</span> <span class="n">examples</span><span class="o">/</span><span class="n">survey</span>
-    <span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">debugpy</span> <span class="o">--</span><span class="n">listen</span> <span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span><span class="p">:</span><span class="mi">5678</span> <span class="o">--</span><span class="n">wait</span><span class="o">-</span><span class="k">for</span><span class="o">-</span><span class="n">client</span> <span class="o">../../</span><span class="n">scripts</span><span class="o">/</span><span class="n">gen_heatmap</span> <span class="n">config</span><span class="o">.</span><span class="n">json</span>
-    <span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">debugpy</span> <span class="o">--</span><span class="n">listen</span> <span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span><span class="p">:</span><span class="mi">5678</span> <span class="o">--</span><span class="n">wait</span><span class="o">-</span><span class="k">for</span><span class="o">-</span><span class="n">client</span> <span class="n">simple_sap_map</span><span class="o">.</span><span class="n">py</span>
+    <span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">debugpy</span> <span class="o">--</span><span class="n">listen</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">5678</span> <span class="o">--</span><span class="n">wait</span><span class="o">-</span><span class="k">for</span><span class="o">-</span><span class="n">client</span> <span class="o">../../</span><span class="n">scripts</span><span class="o">/</span><span class="n">gen_heatmap</span> <span class="n">config</span><span class="o">.</span><span class="n">json</span>
+    <span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">debugpy</span> <span class="o">--</span><span class="n">listen</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">5678</span> <span class="o">--</span><span class="n">wait</span><span class="o">-</span><span class="k">for</span><span class="o">-</span><span class="n">client</span> <span class="n">simple_sap_map</span><span class="o">.</span><span class="n">py</span>
 </pre></div>
 </div>
 <p>Running a test:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">cd</span> <span class="n">tests</span>
-    <span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">debugpy</span> <span class="o">--</span><span class="n">listen</span> <span class="mf">0.0</span><span class="o">.</span><span class="mf">0.0</span><span class="p">:</span><span class="mi">5678</span> <span class="o">--</span><span class="n">wait</span><span class="o">-</span><span class="k">for</span><span class="o">-</span><span class="n">client</span> <span class="n">test_simple_sap_map</span><span class="o">.</span><span class="n">py</span>
+    <span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">debugpy</span> <span class="o">--</span><span class="n">listen</span> <span class="mf">0.0.0.0</span><span class="p">:</span><span class="mi">5678</span> <span class="o">--</span><span class="n">wait</span><span class="o">-</span><span class="k">for</span><span class="o">-</span><span class="n">client</span> <span class="n">test_simple_sap_map</span><span class="o">.</span><span class="n">py</span>
 </pre></div>
 </div>
 <p>Once debugpy is started, over in VSCode, set a breakpoint, Click <code class="docutils literal notranslate"><span class="pre">Debug</span></code> in the left menu, then click <code class="docutils literal notranslate"><span class="pre">Python</span> <span class="pre">Attach</span></code>.  It will attach to the debugpy port and then execute the script.</p>
@@ -77,6 +78,7 @@
 <li class="toctree-l1"><a class="reference internal" href="algorithm.html">Algorithm Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="publications.html">Publications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">heatmap module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html#methods">Methods</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#debugging">Debugging</a></li>
 </ul>
@@ -117,7 +119,7 @@
       &copy;2021, The Regents of the University of California.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

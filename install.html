@@ -13,6 +13,7 @@
     <script src="_static/underscore.js"></script>
     <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Algorithm Overview" href="algorithm.html" />
@@ -40,34 +41,34 @@
 <li><p>First install and start <a class="reference external" href="https://www.docker.com/">Docker Desktop</a> on your local computer.  Windows, MacOS, Linux are all supported.</p></li>
 <li><p>Clone the code, build a docker image, run a container with the image and open a shell to it, run final sap setup, then run the test suite to verify it’s working:</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>    git clone https://github.com/seasketch/heatmap.git
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/seasketch/heatmap.git
 </pre></div>
 </div>
 <ol class="arabic simple" start="3">
 <li><p>Build docker image (only need to run once)</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>    <span class="nb">cd</span> heatmap
-    docker-compose build heatmap
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="nb">cd</span><span class="w"> </span>heatmap
+<span class="w">    </span>docker-compose<span class="w"> </span>build<span class="w"> </span>heatmap
 </pre></div>
 </div>
 <ol class="arabic simple" start="4">
 <li><p>Start the container.</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>    docker-compose run --rm --service-ports heatmap
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span>docker-compose<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>--service-ports<span class="w"> </span>heatmap
 </pre></div>
 </div>
-<p>With this basic start command, the container only has access to the heatmap folder so any input/output will need to be maintained within it.</p>
-<ol class="arabic simple">
+<p>With this basic start command, the container only has access to the heatmap folder so any data inputs and outputs will need to be maintained within it.</p>
+<ol class="arabic simple" start="5">
 <li><p>Alternatively, start container with external folder mounts for input and output</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker-compose run --rm --service-ports -v /absolute/path/to/input:/work/input -v /absolute/path/to/output:/work/output  heatmap
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker-compose<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>--service-ports<span class="w"> </span>-v<span class="w"> </span>/absolute/path/to/input:/work/input<span class="w"> </span>-v<span class="w"> </span>/absolute/path/to/output:/work/output<span class="w">  </span>heatmap
 </pre></div>
 </div>
 <p>With these volume mounts, config.json files can load shapes via <code class="docutils literal notranslate"><span class="pre">infile:</span> <span class="pre">'/work/input/my_shapes.shp</span></code>.  And <code class="docutils literal notranslate"><span class="pre">outpath:</span> <span class="pre">/work/output</span></code> can be used to write heatmaps back out of the container.</p>
 <ol class="arabic simple" start="6">
 <li><p>Optionally, verify everything installed correctly.</p></li>
 </ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>    pytest
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span>pytest
 </pre></div>
 </div>
 <div class="section" id="example-projects">
@@ -98,13 +99,24 @@
 <div class="section" id="creating-a-new-project">
 <h2>Creating a New Project<a class="headerlink" href="#creating-a-new-project" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
-<li><p>Start with copying any of the example folders</p></li>
-<li><p>Copy your input shapes in</p></li>
-<li><p>Start with a simple config.json. Let it use the default bounds of the input shapes, cell size (100m), etc.</p></li>
+<li><p>Start the docker container with your input data (See #4 or #5 above).</p></li>
+<li><p>Start with copying any of the example folders</p>
+<ul>
+<li><p>In config.json don’t include a bounds parameter and it will default to the bounds of the input shapes.  But if you want to generate multiple rasters and maintain a consistent extent across each run you can choose an extent, for example using a tool like [Geofabrik provides]](https://tools.geofabrik.de/calc/#type=geofabrik_standard&amp;tab=1&amp;proj=EPSG:4326&amp;places=2).</p></li>
+<li><p>Default cell size of 100m is reasonable.</p></li>
 </ul>
-<p>Bounds:</p>
+</li>
+</ul>
+<p>config.json file:</p>
 <ul class="simple">
-<li><p>Useful <a class="reference external" href="https://tools.geofabrik.de/calc/#type=geofabrik_standard&amp;tab=1&amp;proj=EPSG:4326&amp;places=2">tool</a> to quickly identify bounds.</p></li>
+<li><p>There are two top-level properties: <code class="docutils literal notranslate"><span class="pre">runs</span></code> and <code class="docutils literal notranslate"><span class="pre">default</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">default</span></code> contains the default options to pass to the genHeatmap() method for each run.  You can add/override all of the options accepted by the <a class="reference external" href="https://github.com/seasketch/heatmap/blob/main/lib/heatmap/gen_heatmap.py#L40%3E">genHeatmap</a> method</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">runs</span></code> allows you to specify one or more runs (heatmaps) to generate.</p>
+<ul>
+<li><p>Typically each run will have a different <code class="docutils literal notranslate"><span class="pre">infile</span></code>, this is because the output raster heatmap is always named the same as the infile, just with a <code class="docutils literal notranslate"><span class="pre">.tif</span></code> extension instead.  This is for ease of use, to limit the number of parameters you need to configure but it also limits how you can use the runs features.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">infile</span></code> can point to any vector dataset supported by Fiona.  This could be shapefile, geojson, etc.</p></li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="section" id="alternative-install-work-in-progress">
@@ -126,39 +138,11 @@
 </div>
 <div class="section" id="install-and-run-in-windows">
 <h3>Install and run in Windows<a class="headerlink" href="#install-and-run-in-windows" title="Permalink to this heading">¶</a></h3>
-<ul class="simple">
-<li><p>Install VS Code - https://code.visualstudio.com/Download</p></li>
-<li><p>Install python 3 from Windows Store if possible, otherwise use python.org.  If you use python.org be sure to ‘add Python to my path’ and turn off execution aliases for Python (or else it will try to open the windows store every time you run python</p></li>
-<li><p>Open terminal and run GitBash terminal</p></li>
-</ul>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="o">&amp;</span> <span class="s1">&#39;C:\Program Files\Git</span><span class="se">\b</span><span class="s1">in</span><span class="se">\b</span><span class="s1">ash.exe&#39;</span>
-</pre></div>
-</div>
 <p>Windows Option 1: Docker</p>
 <p>Install and start Docker for Windows, then build and start a heatmap Docker image:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">seasketch</span><span class="o">/</span><span class="n">heatmap</span><span class="o">.</span><span class="n">git</span>
     <span class="n">cd</span> <span class="n">heatmap</span>
-    <span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">build</span> <span class="n">debug</span> <span class="c1"># not necessary?</span>
     <span class="n">docker</span><span class="o">-</span><span class="n">compose</span> <span class="n">run</span> <span class="o">--</span><span class="n">rm</span> <span class="o">--</span><span class="n">service</span><span class="o">-</span><span class="n">ports</span> <span class="n">heatmap</span>
-</pre></div>
-</div>
-<p>Windows Option 2: Python virtual environment</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">pip</span> <span class="n">install</span> <span class="n">virtualenv</span>
-    <span class="n">virtualenv</span> <span class="n">env</span><span class="o">-</span><span class="n">heatmap</span>
-    <span class="n">source</span> <span class="n">env</span><span class="o">-</span><span class="n">heatmap</span><span class="o">/</span><span class="n">Scripts</span><span class="o">/</span><span class="n">activate</span>
-    <span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">upgrade</span> <span class="n">pip</span>
-</pre></div>
-</div>
-<p>Follow the rasterio windows instructions - https://rasterio.readthedocs.io/en/latest/installation.html#windows
-Pointed to install GDAL and Rasterio wheels from https://www.lfd.uci.edu/~gohlke/pythonlibs/#gdal.  Look for the latest win_amd64:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">pip</span> <span class="n">install</span> <span class="o">.</span>\<span class="n">GDAL</span><span class="o">-</span><span class="mf">3.3</span><span class="o">.</span><span class="mi">1</span><span class="o">-</span><span class="n">cp39</span><span class="o">-</span><span class="n">cp39</span><span class="o">-</span><span class="n">win_amd64</span><span class="o">.</span><span class="n">whl</span>
-    <span class="n">pip</span> <span class="n">install</span> <span class="o">.</span>\<span class="n">rasterio</span><span class="o">-</span><span class="mf">1.2</span><span class="o">.</span><span class="mi">6</span><span class="o">-</span><span class="n">cp39</span><span class="o">-</span><span class="n">cp39</span><span class="o">-</span><span class="n">win_amd64</span><span class="o">.</span><span class="n">whl</span>
-    <span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements</span><span class="o">.</span><span class="n">txt</span>
-    <span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">r</span> <span class="n">requirements_dev</span><span class="o">.</span><span class="n">txt</span>
-</pre></div>
-</div>
-<p>deactivate the virtual Python environment when done, activate again when needed, or delete</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">deactivate</span>
 </pre></div>
 </div>
 </div>
@@ -194,6 +178,7 @@ Pointed to install GDAL and Rasterio wheels from https://www.lfd.uci.edu/~gohlke
 <li class="toctree-l1"><a class="reference internal" href="algorithm.html">Algorithm Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="publications.html">Publications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">heatmap module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html#methods">Methods</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 </ul>
 
@@ -232,7 +217,7 @@ Pointed to install GDAL and Rasterio wheels from https://www.lfd.uci.edu/~gohlke
       &copy;2021, The Regents of the University of California.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
