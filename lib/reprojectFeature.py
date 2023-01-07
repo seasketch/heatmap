@@ -13,7 +13,8 @@ def reprojectPolygon(polygon, inCrs='epsg:4326', outCrs='epsg:3857'):
 
   project = pyproj.Transformer.from_proj(
     pyproj.Proj(inCrs), # source coordinate system
-    pyproj.Proj(outCrs)) # destination coordinate system
+    pyproj.Proj(outCrs), # destination coordinate system
+    always_xy=True)
   
   reprojected = transform(project.transform, polygon)  # apply projection
   return reprojected
