@@ -42,7 +42,7 @@ def genHeatMap(
     infile: path+filename of vector dataset containing features, format must be supported by fiona/gdal
     outpath: path to output heatmaps to.  Filename will be the same as the input, just with the .tif extension.  If not specified, heatmaps are output to the input folder
     overwrite: whether to overwrite existing heatmap output, defaults to false and skips
-    method: method for calculating value: count, area, sap. Defaults to area
+    method: method for calculating value: count, area, sap. Defaults to sap
     importanceField: name of vector attribute containing importance value used for SAP calculation
     importanceFactorField: name of vector attribute containing importanceFactor value for importance
     areaFactor: factor to change the area by dividing. For example if area of geometry is calculated in square meters, an areaFactor of 1,000,000 will make the SAP per square km. because 1 sq. km = 1000m x 1000m = 1mil sq. meters 
