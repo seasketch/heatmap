@@ -7,7 +7,7 @@ from rasterio.enums import MergeAlg
 from rasterio.crs import CRS
 import rasterio.shutil
 from reprojectFeature import reprojectPolygon
-from shapely.geometry import shape, box, Polygon
+from shapely.geometry import shape, box, Polygon, MultiPolygon
 import fiona
 import simplejson
 import time
@@ -138,8 +138,9 @@ def genHeatMap(
   # Special handle shapes smaller than an output pixel
   smallShapes = []
 
-  # Calculate shape index of raster pixel
-  # Use as threshold to determine if shapes are large enough to get picked up by rasterize function (polygon shape index > raster cell shape index)
+  # Calculate shape index of one raster pixel.  Shape index = pixel area / pixel length
+  # Can be used to identify small shapes that might not be picked up by the standard
+  # rasterize function which uses painters algorithm (shape must cross centerpoint of raster cell)
   shapeIndexThreshold = calcShapeIndex(inBounds, outResolution, allTouchedSmallFactor)
 
   for idx, feature in enumerate(src_shapes):
@@ -148,7 +149,14 @@ def genHeatMap(
       # Get new geojson-like object from shape, we'll use it for lower level work later
       geometry = shapeGeom.__geo_interface__
 
+      uniqueId = ''
+      if uniqueIdField:
+        uniqueId = feature['properties'][uniqueIdField]
+      else:
+        uniqueId = idx
+
       error = False
+      # If shape is invalid, attempt to fix it, otherwise log it and move on
       if not shapeGeom.is_valid:
         if fixGeom:
           fixedGeom = shapeGeom.buffer(0)
@@ -178,6 +186,7 @@ def genHeatMap(
       elif len(geometry['coordinates'][0]) == 0:
         error = "Geometry has no coordinates"
 
+      # Calculate heat value
       if not error:
         heatValue = 1 # count method
         if method == 'area':
@@ -192,29 +201,39 @@ def genHeatMap(
               maxSap
             )
 
-        # Calculate shape index of polygon and see if smaller than threshold
-        polygonShapeIndex = calcPolygonShapeIndex(shapeGeom)
-        isSmall = allTouchedSmall and polygonShapeIndex < shapeIndexThreshold
-        
-        if (isSmall):
-          smallShapes.append((geometry, heatValue))
-        else:
-          shapes.append((geometry, heatValue))
+        # Split shapes into two groups based on whether their shape index is above or below threshold
+        # Threshold is based on the size of one raster cell
+        # Shapes below threshold are considered small and will have the all_touched algorithm applied
+        # to ensure each small shape gets at least one pixel of heat in the result
+        # Regular shapes will not have all_touched algorithm applied because all_touched causes some
+        # line artifacts for larger shapes that are incorrect. Using only on small minimizes that affect
 
-        if uniqueIdField:
-          manifest['included'].append((feature['properties'][uniqueIdField], heatValue))
-          if isSmall:
-            manifest['includedSmall'].append((feature['properties'][uniqueIdField], heatValue))
-        else:
-          manifest['included'].append((idx, heatValue))
+        if (geometry["type"] == "Polygon"):
+          # Calculate shape index of polygon and see if smaller than threshold
+          polygonShapeIndex = calcPolygonShapeIndex(shapeGeom)
+          isSmall = allTouchedSmall and polygonShapeIndex < shapeIndexThreshold
+          if (isSmall):
+            smallShapes.append((geometry, heatValue))
+          else:
+            shapes.append((geometry, heatValue))
+        elif (geometry["type"] == "MultiPolygon"):
+          # If multipolygon, split up into individual polygons so that small pieces bin accordingly
+          polys = list(shapeGeom.geoms)
+          print('Splitting multipolygon {0} into {1} pieces and applying heat value {2} to each'.format(uniqueId, len(polys), heatValue))
+          for p in polys:
+            polygonShapeIndex = calcPolygonShapeIndex(p)
+            isSmall = allTouchedSmall and polygonShapeIndex < shapeIndexThreshold
+            if (isSmall):
+              smallShapes.append((MultiPolygon([p]).__geo_interface__, heatValue))
+            else:
+              shapes.append((p.__geo_interface__, heatValue))
+
+        manifest['included'].append((uniqueId, heatValue))
       elif len(error) > 0:
         log.append("Skipping feature: {}".format(error))
         log.append(simplejson.dumps(feature))
         log.append("")
-        if uniqueIdField:
-          manifest['excluded'].append((feature['properties'][uniqueIdField], heatValue))
-        else:
-          manifest['excluded'].append((idx, heatValue))
+        manifest['excluded'].append((uniqueId, heatValue))
 
   result = None
   if allTouchedSmall and len(smallShapes) > 0:
