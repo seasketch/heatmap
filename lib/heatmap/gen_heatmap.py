@@ -7,13 +7,14 @@ from rasterio.enums import MergeAlg
 from rasterio.crs import CRS
 import rasterio.shutil
 from reprojectFeature import reprojectPolygon
-from shapely.geometry import shape, box, Polygon
+from shapely.geometry import shape, box, Polygon, MultiPolygon
 import fiona
 import simplejson
 import time
 import datetime
 from heatmap.calc_raster_props import calcRasterProps
 from heatmap.calc_sap import calcSap
+from shapeIndex import calcShapeIndex, calcPolygonShapeIndex
 
 def genHeatMap(
   infile,
@@ -41,7 +42,7 @@ def genHeatMap(
     infile: path+filename of vector dataset containing features, format must be supported by fiona/gdal
     outpath: path to output heatmaps to.  Filename will be the same as the input, just with the .tif extension.  If not specified, heatmaps are output to the input folder
     overwrite: whether to overwrite existing heatmap output, defaults to false and skips
-    method: method for calculating value: count, area, sap. Defaults to area
+    method: method for calculating value: count, area, sap. Defaults to sap
     importanceField: name of vector attribute containing importance value used for SAP calculation
     importanceFactorField: name of vector attribute containing importanceFactor value for importance
     areaFactor: factor to change the area by dividing. For example if area of geometry is calculated in square meters, an areaFactor of 1,000,000 will make the SAP per square km. because 1 sq. km = 1000m x 1000m = 1mil sq. meters 
@@ -137,28 +138,25 @@ def genHeatMap(
   # Special handle shapes smaller than an output pixel
   smallShapes = []
 
-  # Get shape index for one output raster cell
-  (minx, miny, maxx, maxy) = inBounds
-  cellBL = (minx, miny)
-  cellBR = (minx + outResolution, miny)
-  cellTR = (minx + outResolution, miny + outResolution)
-  cellTL = (minx, miny + outResolution)
-  cellPoly = Polygon([cellBL, cellBR, cellTR, cellTL, cellBL])
-  # Based on https://gis.stackexchange.com/questions/316128/identifying-long-and-narrow-polygons-in-with-postgis
-  # In practice, the inverse method does not seem to work as well
-  cellShapeIndex = cellPoly.area / cellPoly.length
-
-  minShapeIndex = Infinity
-  maxShapeIndex = 0
-  shapeIndexThreshold = Infinity
-
-  if allTouchedSmall:
-    shapeIndexThreshold = cellShapeIndex * allTouchedSmallFactor
+  # Calculate shape index of one raster pixel.  Shape index = pixel area / pixel length
+  # Can be used to identify small shapes that might not be picked up by the standard
+  # rasterize function which uses painters algorithm (shape must cross centerpoint of raster cell)
+  shapeIndexThreshold = calcShapeIndex(inBounds, outResolution, allTouchedSmallFactor)
 
   for idx, feature in enumerate(src_shapes):
-      geometry = feature['geometry'] if src_shapes.crs['init'] == outCrsString else next(reprojectPolygon(feature))
-      shapeGeom = shape(geometry)
+      # Convert to shapely Polygon/MultiPolygon with reproject if necessary
+      shapeGeom = shape(feature['geometry']) if src_shapes.crs['init'] == outCrsString else reprojectPolygon(shape(feature['geometry']), src_shapes.crs['init'], outCrsString)
+      # Get new geojson-like object from shape, we'll use it for lower level work later
+      geometry = shapeGeom.__geo_interface__
+
+      uniqueId = ''
+      if uniqueIdField:
+        uniqueId = feature['properties'][uniqueIdField]
+      else:
+        uniqueId = idx
+
       error = False
+      # If shape is invalid, attempt to fix it, otherwise log it and move on
       if not shapeGeom.is_valid:
         if fixGeom:
           fixedGeom = shapeGeom.buffer(0)
@@ -166,10 +164,10 @@ def genHeatMap(
             log.append("Fixed invalid feature geometry")
             log.append(simplejson.dumps(feature))
             log.append("With new geometry")
-            newGeom = next(reprojectPolygon(fixedGeom.__geo_interface__, "epsg:3857", "epsg:4326"))
+            logGeom = reprojectPolygon(fixedGeom.__geo_interface__, "epsg:3857", "epsg:4326")
             log.append(simplejson.dumps({
               **feature,
-              'geometry': newGeom
+              'geometry': logGeom
             }))
             log.append("")     
             shapeGeom = fixedGeom
@@ -188,6 +186,7 @@ def genHeatMap(
       elif len(geometry['coordinates'][0]) == 0:
         error = "Geometry has no coordinates"
 
+      # Calculate heat value
       if not error:
         heatValue = 1 # count method
         if method == 'area':
@@ -202,37 +201,39 @@ def genHeatMap(
               maxSap
             )
 
-        curShapeIndex = 0
-        if allTouchedSmall:
-          curShapeIndex = shapeGeom.area / shapeGeom.exterior.length
-          minShapeIndex = min(minShapeIndex, curShapeIndex)
-          maxShapeIndex = max(maxShapeIndex, curShapeIndex)
-        isSmall = allTouchedSmall and curShapeIndex < shapeIndexThreshold
-        if (isSmall):
-          smallShapes.append((
-            geometry,
-            heatValue
-          ))
-        else:
-          shapes.append((
-            geometry,
-            heatValue
-          ))
+        # Split shapes into two groups based on whether their shape index is above or below threshold
+        # Threshold is based on the size of one raster cell
+        # Shapes below threshold are considered small and will have the all_touched algorithm applied
+        # to ensure each small shape gets at least one pixel of heat in the result
+        # Regular shapes will not have all_touched algorithm applied because all_touched causes some
+        # line artifacts for larger shapes that are incorrect. Using only on small minimizes that affect
 
-        if uniqueIdField:
-          manifest['included'].append(feature['properties'][uniqueIdField])
-          if isSmall:
-            manifest['includedSmall'].append(feature['properties'][uniqueIdField])
-        else:
-          manifest['included'].append(idx)
+        if (geometry["type"] == "Polygon"):
+          # Calculate shape index of polygon and see if smaller than threshold
+          polygonShapeIndex = calcPolygonShapeIndex(shapeGeom)
+          isSmall = allTouchedSmall and polygonShapeIndex < shapeIndexThreshold
+          if (isSmall):
+            smallShapes.append((geometry, heatValue))
+          else:
+            shapes.append((geometry, heatValue))
+        elif (geometry["type"] == "MultiPolygon"):
+          # If multipolygon, split up into individual polygons so that small pieces bin accordingly
+          polys = list(shapeGeom.geoms)
+          print('Splitting multipolygon {0} into {1} pieces and applying heat value {2} to each'.format(uniqueId, len(polys), heatValue))
+          for p in polys:
+            polygonShapeIndex = calcPolygonShapeIndex(p)
+            isSmall = allTouchedSmall and polygonShapeIndex < shapeIndexThreshold
+            if (isSmall):
+              smallShapes.append((MultiPolygon([p]).__geo_interface__, heatValue))
+            else:
+              shapes.append((p.__geo_interface__, heatValue))
+
+        manifest['included'].append((uniqueId, heatValue))
       elif len(error) > 0:
         log.append("Skipping feature: {}".format(error))
         log.append(simplejson.dumps(feature))
         log.append("")
-        if uniqueIdField:
-          manifest['excluded'].append(feature['properties'][uniqueIdField])
-        else:
-          manifest['excluded'].append(idx)
+        manifest['excluded'].append((uniqueId, heatValue))
 
   result = None
   if allTouchedSmall and len(smallShapes) > 0:
@@ -325,7 +326,6 @@ def genHeatMap(
   manifest['executionTime'] = round(time.perf_counter() - startTime, 2)
   if allTouchedSmall:
     manifest['includedSmallCount'] = len(smallShapes)
-    manifest['cellShapeIndex'] = cellShapeIndex
     manifest['allTouchedSmallFactor'] = allTouchedSmallFactor
     manifest['shapeIndexThreshold'] = shapeIndexThreshold
 
@@ -334,7 +334,6 @@ def genHeatMap(
   print(' {} features burned in'.format(manifest['includedCount']))
   if (allTouchedSmall):
     print(' allTouchedSmall enabled, numSmallShapes: {0}'.format(len(smallShapes)))
-    print('  cellShapeIndex: {0}, shapeIndexThreshold: {1} minShapeIndex: {2}, maxShapeIndex: {3}'.format(cellShapeIndex, shapeIndexThreshold, minShapeIndex, maxShapeIndex))
   if manifest['excludedCount'] > 0:
     print(' {} features excluded, see logfile for details'.format(manifest['excludedCount']))
   print('')
@@ -346,8 +345,6 @@ def genHeatMap(
       print('Manifest:')
       print(simplejson.dumps(manifest, indent=2))
       print('')
-
-
 
   if errorfile and len(error_shapes) > 0:
     with open(errorfile, 'w') as errorFile:
