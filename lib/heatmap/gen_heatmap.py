@@ -14,6 +14,7 @@ import time
 import datetime
 from heatmap.calc_raster_props import calcRasterProps
 from heatmap.calc_sap import calcSap
+from shapeIndex import calcShapeIndex, calcPolygonShapeIndex
 
 def genHeatMap(
   infile,
@@ -137,25 +138,9 @@ def genHeatMap(
   # Special handle shapes smaller than an output pixel
   smallShapes = []
 
-  # Use shape index for identifying "small" shapes
-  # Based on https://gis.stackexchange.com/questions/316128/identifying-long-and-narrow-polygons-in-with-postgis
-  # In practice, the inverse method does not seem to work as well
-
-  # Get shape index for one output raster cell
-  (minx, miny, maxx, maxy) = inBounds
-  cellBL = (minx, miny)
-  cellBR = (minx + outResolution, miny)
-  cellTR = (minx + outResolution, miny + outResolution)
-  cellTL = (minx, miny + outResolution)
-  cellPoly = Polygon([cellBL, cellBR, cellTR, cellTL, cellBL])
-  # Calculate shape index for polygon
-  cellShapeIndex = cellPoly.area / cellPoly.length
-
-  minShapeIndex = Infinity
-  maxShapeIndex = 0
-  shapeIndexThreshold = Infinity
-  if allTouchedSmall:
-    shapeIndexThreshold = cellShapeIndex * allTouchedSmallFactor
+  # Calculate shape index of raster pixel
+  # Use as threshold to determine if shapes are large enough to get picked up by rasterize function (polygon shape index > raster cell shape index)
+  shapeIndexThreshold = calcShapeIndex(inBounds, outResolution, allTouchedSmallFactor)
 
   for idx, feature in enumerate(src_shapes):
       # Convert to shapely Polygon/MultiPolygon with reproject if necessary
@@ -207,17 +192,9 @@ def genHeatMap(
               maxSap
             )
 
-        curShapeIndex = 0
-        if allTouchedSmall:
-          curLength = 1
-          if (geometry["type"] == "Polygon"):
-            curLength = shapeGeom.exterior.length
-          elif (geometry["type"] == "MultiPolygon") :
-            curLength = shapeGeom.length
-          curShapeIndex = shapeGeom.area / curLength
-          minShapeIndex = min(minShapeIndex, curShapeIndex)
-          maxShapeIndex = max(maxShapeIndex, curShapeIndex)
-        isSmall = allTouchedSmall and curShapeIndex < shapeIndexThreshold
+        # Calculate shape index of polygon and see if smaller than threshold
+        polygonShapeIndex = calcPolygonShapeIndex(shapeGeom)
+        isSmall = allTouchedSmall and polygonShapeIndex < shapeIndexThreshold
         
         if (isSmall):
           smallShapes.append((geometry, heatValue))
@@ -330,7 +307,6 @@ def genHeatMap(
   manifest['executionTime'] = round(time.perf_counter() - startTime, 2)
   if allTouchedSmall:
     manifest['includedSmallCount'] = len(smallShapes)
-    manifest['cellShapeIndex'] = cellShapeIndex
     manifest['allTouchedSmallFactor'] = allTouchedSmallFactor
     manifest['shapeIndexThreshold'] = shapeIndexThreshold
 
@@ -339,7 +315,6 @@ def genHeatMap(
   print(' {} features burned in'.format(manifest['includedCount']))
   if (allTouchedSmall):
     print(' allTouchedSmall enabled, numSmallShapes: {0}'.format(len(smallShapes)))
-    print('  cellShapeIndex: {0}, shapeIndexThreshold: {1} minShapeIndex: {2}, maxShapeIndex: {3}'.format(cellShapeIndex, shapeIndexThreshold, minShapeIndex, maxShapeIndex))
   if manifest['excludedCount'] > 0:
     print(' {} features excluded, see logfile for details'.format(manifest['excludedCount']))
   print('')
@@ -351,8 +326,6 @@ def genHeatMap(
       print('Manifest:')
       print(simplejson.dumps(manifest, indent=2))
       print('')
-
-
 
   if errorfile and len(error_shapes) > 0:
     with open(errorfile, 'w') as errorFile:
