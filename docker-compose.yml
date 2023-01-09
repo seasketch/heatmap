@@ -1,19 +1,16 @@
-# Setup heatmap workspace container
+# Use for development purposes.  Building on top of base Dockerfile that is published
 
 version: '3'
 services:
   heatmap:
     container_name: heatmap
-    image: seasketch/heatmap:1.0.0
+    image: seasketch/heatmap:latest
     build:
-      context: .             # use dockerfile
+      context: .
       target: workspace
-    #working_dir: /work      #comment out for build.target:prod
-    #entrypoint: /bin/sh     #comment out for build.target:prod
-    #stdin_open: true        #comment out for build.target:prod
-    #tty: true               #comment out for build.target:prod
     volumes:
-    - ./:/work
-    ports:
-      - 5678:5678
-    command: bash -c "/work/scripts/setup_heatmap && exec bash"
+    # Mount repo, overriding default work space
+    - .:/work
+    # Mount test project
+    - ./projects:/projects
+    command: ["bash"]
