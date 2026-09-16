@@ -27,52 +27,76 @@ docker-compose run --rm --service-ports -v /absolute/path/to/input:/work/input -
 ```
 With these volume mounts, config.json files can load shapes via `infile: '/work/input/my_shapes.shp`.  And `outpath: /work/output` can be used to write heatmaps back out of the container.
 
-6. Optionally, verify everything installed correctly.
+6. Optionally, verify everything installed correctly.  The container starts in `/projects`, so run the suite from the mounted repo:
 ```bash
-    pytest
+    cd /work && pytest
 ```
 
-## Example Projects
+## Projects
 
-Multiple example projects are included that can be run out of the box.
+The `projects/` directory is mounted into the container at `/projects` and is where your
+own work lives.  Its contents are not tracked by git, so create one directory per project
+with a `config.json` in it.
 
-`Simple` - small geographic extent.  Very simple test dataset with polygons that aligned to 100m boundaries for ease of interpreting the result.  Produces raster with 100m cell size.
-
-`Maldives` - medium geographic extent.  Produces raster with 100m cell size.
-
-`Canada` - large geographic extent. Demonstrates pushing the limits of raster file size and memory usage.  Produces raster with 400m cell size.
-
-### Run the Simple project
-
-```
-cd examples/simple
-gen_heatmap config.json
-```
-
-## Run the Canada project
-You will need to generate random input data first.
-
-```
-cd examples/canada
-
-../../scripts/gen_random_shapes config.json canada-poly.geojson
-
-gen_heatmap config.json
-```
-
-## Creating a New Project
+### Creating a New Project
 
 * Start the docker container with your input data (See #4 or #5 above).
-* Start with copying any of the example folders
+* Create a directory under `projects/` containing a `config.json`.
   * In config.json don't include a bounds parameter and it will default to the bounds of the input shapes.  But if you want to generate multiple rasters and maintain a consistent extent across each run you can choose an extent, for example using a tool like [Geofabrik provides]](https://tools.geofabrik.de/calc/#type=geofabrik_standard&tab=1&proj=EPSG:4326&places=2).
   * Default cell size of 100m is reasonable.
 
 config.json file:
 * There are two top-level properties: `runs` and `default`
-* `default` contains the default options to pass to the genHeatmap() method for each run.  You can add/override all of the options accepted by the [genHeatmap](https://github.com/seasketch/heatmap/blob/main/lib/heatmap/gen_heatmap.py#L40>) method
+* `default` contains the default options to pass to the genHeatmap() method for each run.  You can add/override all of the options accepted by the [genHeatmap](https://github.com/seasketch/heatmap/blob/main/lib/heatmap/gen_heatmap.py#L69>) method
 * `runs` allows you to specify one or more runs (heatmaps) to generate.
   * Typically each run will have a different `infile`, this is because the output raster heatmap is always named the same as the infile, just with a `.tif` extension instead.  This is for ease of use, to limit the number of parameters you need to configure but it also limits how you can use the runs features. 
   * `infile` can point to any vector dataset supported by Fiona.  This could be shapefile, geojson, etc.
+
+For example:
+
+```json
+{
+    "default": {
+        "outPath": "/projects/my-project/outputs",
+        "outResolution": 100,
+        "areaFactor": 1000000,
+        "importanceField": "importance",
+        "uniqueIdField": "shape_id",
+        "allTouchedSmall": true,
+        "overwrite": true
+    },
+    "runs": [
+        { "infile": "/work/input/my_shapes.fgb" }
+    ]
+}
+```
+
+### Run a project
+
+```
+cd /projects/my-project
+gen_heatmap config.json
+```
+
+Each run writes `{infile}.tif` to `outPath`, plus a `logs/` directory next to it holding
+`{infile}.info.json` for every run.  Set `logToFile` to also write `{infile}.log.txt` and,
+when features had to be skipped, `{infile}.error.geojson`.
+
+### Generating the runs list
+
+When a project has many input files, `update_runs` fills in the `runs` list from the
+vector files in a directory rather than listing each one by hand.  It rewrites the `runs`
+property of the config in place, leaving `default` untouched:
+
+```
+update_runs config.json /work/input
+```
+
+An optional glob restricts which files are picked up, and supports `**` for recursion:
+
+```
+update_runs config.json /work/input "sector-*.fgb"
+```
 
 ## Alternative Install (Work in progress)
 

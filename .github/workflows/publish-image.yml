@@ -40,6 +40,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
+          target: base
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64

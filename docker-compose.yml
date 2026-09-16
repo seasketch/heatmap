@@ -1,10 +1,9 @@
 # Use for development purposes.  Building on top of base Dockerfile that is published
 
-version: '3'
 services:
   heatmap:
     container_name: heatmap
-    image: seasketch/heatmap:latest
+    image: seasketch/heatmap:workspace
     build:
       context: .
       target: workspace

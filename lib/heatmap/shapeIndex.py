@@ -1,4 +1,4 @@
-from numpy import Infinity
+from numpy import inf
 from shapely.geometry import Polygon
 
 def calcShapeIndex(bounds, resolution, factor=1.25):
@@ -15,7 +15,7 @@ def calcShapeIndex(bounds, resolution, factor=1.25):
   
   # Calculate shape index for one raster pixel
   cellShapeIndex = calcCellShapeIndex(bounds, resolution)
-  threshold = Infinity
+  threshold = inf
   threshold = cellShapeIndex * factor
   return threshold
 

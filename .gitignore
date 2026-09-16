@@ -16,9 +16,8 @@ MANIFEST
 
 tests/output/*
 !tests/output/README.md
-examples/*/*.tif
-examples/*/*.log.txt
-examples/*/*.geojson
-examples/*/*.manifest.json
+tests/data/*.tif
+tests/data/logs/
 projects/**/*
+!projects/.gitkeep
 docs/_build/html
