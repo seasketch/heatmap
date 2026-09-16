@@ -7,11 +7,10 @@ Once a workspace container is up, you can run a script using debugpy in your con
 
 Start debupy in container listening on port, waits for vscode before executing the Python script.
 
-Running an example:
+Running a project:
 ```
-    cd examples/survey
-    python -m debugpy --listen 0.0.0.0:5678 --wait-for-client ../../scripts/gen_heatmap config.json
-    python -m debugpy --listen 0.0.0.0:5678 --wait-for-client simple_sap_map.py
+    cd /projects/my-project
+    python -m debugpy --listen 0.0.0.0:5678 --wait-for-client /work/scripts/gen_heatmap config.json
 ```
 
 Running a test:

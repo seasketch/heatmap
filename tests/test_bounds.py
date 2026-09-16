@@ -74,12 +74,14 @@ def test_inner_bounds():
         assert(reader.nodata == 0.0)
 
         arr = reader.read()
-        # Extent is that of simple-polygon.shp with additional 200 meters on each side
-        # Hand verified values, should be same as simple with two additional cells of zeroes around it
+        # Bounds are smaller than the input shapes, so shapes are clipped by the raster
+        # Area comes from overlapped cell coverage, which only counts cells inside the raster.
+        # The bottom right shape extends past these bounds and overlaps a single cell, so its
+        # area is one cell rather than its full four, concentrating its heat into that cell
         # view simple-polygon.tif in qgis using the tests/base/testdata.qgz project to verify
         checkArr = np.array([[
             [0,   0.5],
-            [0.5, 1.25],
+            [0.5, 2.0],
         ]], dtype=np.float32)
 
         np.testing.assert_array_equal(arr, checkArr)

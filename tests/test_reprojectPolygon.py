@@ -1,6 +1,6 @@
 from shapely.geometry import shape
 import simplejson
-from reprojectFeature import reprojectPolygon
+from heatmap.reprojectFeature import reprojectPolygon
 
 def test_polygon_shape_reproject():
     polyShape4326 = shape({

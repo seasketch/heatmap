@@ -49,6 +49,52 @@ def test_calc_sap_areaFactor():
     )
     assert(sap3 == 10)
 
+def test_calc_sap_area():
+    # genHeatMap passes the overlapped raster cell area instead of the geometry area.
+    # Here the shape overlaps a single 100m cell, so 10,000m^2 is used in place of the
+    # geometry's own 20,000m^2
+    # 20 importance / (10,000 / 10,000) = 20 SAP
+    sap1 = calcSap(
+        geometry,
+        importance,
+        10000,
+        area=10000
+    )
+    assert(sap1 == 20)
+
+def test_calc_sap_area_floor():
+    # Without a floor, a small area produces a high SAP
+    # 20 importance / (5,000 / 10,000) = 40 SAP
+    sap1 = calcSap(
+        geometry,
+        importance,
+        10000,
+        area=5000
+    )
+    assert(sap1 == 40)
+
+    # areaFloor raises the area before areaFactor is applied, lowering the SAP
+    # 20 importance / (10,000 / 10,000) = 20 SAP
+    sap2 = calcSap(
+        geometry,
+        importance,
+        10000,
+        area=5000,
+        areaFloor=10000
+    )
+    assert(sap2 == 20)
+
+    # A floor below the area has no effect
+    # 20 importance / (20,000 / 10,000) = 10 SAP
+    sap3 = calcSap(
+        geometry,
+        importance,
+        10000,
+        area=20000,
+        areaFloor=10000
+    )
+    assert(sap3 == 10)
+
 def test_calc_sap_importance_factor():
     # Assume the geometry represents the value for a group of 3000 people.
     # Use the importanceFactor to scale the SAP up, so that each of those people get

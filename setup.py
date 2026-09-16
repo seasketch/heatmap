@@ -44,6 +44,7 @@ setup(
     url="https://github.com/seasketch/heatmap",
     package_dir={'': 'lib'},
     packages=['heatmap'],
+    scripts=['scripts/gen_heatmap', 'scripts/update_runs'],
     long_description=read('README.md'),
     install_requires=read('requirements.txt').splitlines(),
     tests_require=read('requirements_dev.txt').splitlines(),
