@@ -9,10 +9,10 @@ def create_progress(total, desc, unit='it', initial=0):
     unit=unit,
     initial=initial,
     file=sys.stderr,
-    ncols=120,
+    ncols=80,
     leave=False,
-    smoothing=0.05,
     mininterval=0.1,
+    bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}{postfix}',
   )
 
 
