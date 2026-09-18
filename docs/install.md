@@ -32,6 +32,16 @@ With these volume mounts, config.json files can load shapes via `infile: '/work/
     cd /work && pytest
 ```
 
+### Apple Silicon / linux/arm64
+
+The default image is linux/amd64 (`perrygeo/gdal-base` is not published for arm64). On an arm64 host, build and run the native image instead:
+
+```bash
+    docker compose --profile arm64 run --rm --service-ports heatmap-arm64
+```
+
+Or: `make shell-arm64`. The published runtime tag is `seasketch/heatmap:arm64`.
+
 ## Projects
 
 The `projects/` directory is mounted into the container at `/projects` and is where your

@@ -1,0 +1,58 @@
+# arm64 build.  The amd64 image is based on perrygeo/gdal-base, which is published for
+# amd64 only, so on an arm64 host that image can only run under emulation.
+#
+# fiona publishes no linux aarch64 wheels, so it has to come from a GDAL that is already
+# built for this architecture.  Debian's python3-fiona and python3-rasterio are both
+# linked against the same system GDAL, and the venv is created with
+# --system-site-packages so pip can see them and skip reinstalling them from source.
+FROM debian:bookworm-slim AS base
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-venv \
+    python3-fiona \
+    python3-rasterio \
+    gdal-data \
+    ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+# Copy source code and scripts into container
+
+COPY lib /work/lib
+COPY scripts /work/scripts
+COPY setup.py /work/setup.py
+COPY setup.cfg /work/setup.cfg
+COPY LICENSE /work/LICENSE
+COPY README.md /work/README.md
+COPY requirements.txt /work/requirements.txt
+# setup.py reads this for tests_require, so it must be present for the install below
+COPY requirements_dev.txt /work/requirements_dev.txt
+COPY constraints-arm64.txt /work/constraints-arm64.txt
+
+# --system-site-packages keeps Debian's GDAL-linked fiona and rasterio importable
+RUN python3 -m venv --system-site-packages /opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+
+WORKDIR /work/
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir -c constraints-arm64.txt -r requirements.txt
+
+# Put scripts on PATH for non-interactive commands (docker run, make test) as well as
+# for interactive shells
+ENV PATH="/work/scripts:${PATH}"
+RUN echo "export PATH=/work/scripts:/opt/venv/bin:${PATH}" >> /root/.bashrc
+RUN /work/scripts/setup_heatmap
+
+# Start in projects directory
+WORKDIR /projects/
+
+# Development image used by docker-compose, adds the test suite and dev dependencies
+FROM base AS workspace
+
+COPY tests /work/tests
+
+WORKDIR /work/
+RUN pip install --no-cache-dir -c constraints-arm64.txt -r requirements_dev.txt
+
+WORKDIR /projects/

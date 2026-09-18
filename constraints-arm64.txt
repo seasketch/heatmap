@@ -1,0 +1,8 @@
+# Pins for the arm64 image only.
+#
+# fiona, rasterio and numpy are deliberately absent: they come from Debian so they stay
+# linked against the system GDAL, and pinning them here would make pip rebuild them from
+# source.  shapely and pyproj do publish aarch64 wheels, so they are pinned to the
+# versions the amd64 image resolves to rather than Debian's older ones.
+pyproj==3.5.0
+shapely==2.0.7

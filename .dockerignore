@@ -1,0 +1,13 @@
+# Both Dockerfiles COPY explicit paths, so excluding these only shrinks the context
+.git
+.github
+.vscode
+docs
+projects
+input
+output
+*.egg-info
+.eggs
+.pytest_cache
+__pycache__
+*.pyc
