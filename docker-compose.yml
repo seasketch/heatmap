@@ -13,3 +13,20 @@ services:
     # Mount test project
     - ./projects:/projects
     command: ["bash"]
+
+  # Native arm64 image. perrygeo/gdal-base is amd64-only, so this uses Dockerfile.arm64.
+  #   docker compose --profile arm64 run --rm heatmap-arm64
+  heatmap-arm64:
+    container_name: heatmap-arm64
+    image: seasketch/heatmap:workspace-arm64
+    profiles: ["arm64"]
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: Dockerfile.arm64
+      target: workspace
+    volumes:
+    - .:/work
+    - ./projects:/projects
+    command: ["bash"]
+
